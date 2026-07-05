@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
+import math
 
 # ==========================
 # Effect Definitions
@@ -84,8 +85,10 @@ class Cauldron(Apparatus):
     fluid: Fluid | None = None
     amount_ml: float = 0
     potion = None
+    effstack = []
 
     def add(self, herb, char):
+        
         pass
 
     def fill(self, fluid, amount, char):
@@ -170,12 +173,68 @@ class Character:
 # Potions
 # ==========================
 
+#funcs for Potions
+def potname(ing, fl):
+    return f"{ing.name.capitalize()} {fl.suffix.capitalize()}"
+
+def unit(vec):
+    mag = math.sqrt(sum(x*x for x in vec))
+
+    if mag == 0:
+        return tuple(0 for _ in vec)
+
+    return tuple(x / mag for x in vec)
+
+def dirv(vec, index):
+    return tuple(
+        value
+        for i, value in enumerate(vec)
+        if i != index
+    )
+
+def simmilarity(a,b):
+    if len(a) != len(b):
+        raise ValueError("Vectors must have the same dimensions.")
+    ua = unit(a)
+    ub = unit(b)
+    return sum(
+        x*y
+        for x, y in zip(ua, ub)
+    )
+
+def resAdd(a, b):
+    if len(a) != len(b):
+        raise ValueError("Vectors must have the same dimensions.")
+    out = []
+    resConst = 2
+    for i in range(len(a)):
+        aval = a[i]
+        bval = b[i]
+
+        adir = dirv(a, i)
+        bdir = dirv(b, i)
+
+        res = simmilarity(adir, bdir)
+        scale = ((res + 1) / 2) ** resConst
+
+        rsult = (aval + bval)*scale
+        out.append(rsult)
+    Out =[]
+    for j in out:
+        Out.append(round(j, 3))
+    return tuple(Out)
+
+
+
+
+#---------------------------
+
+
 @dataclass
 class Potion:
     name: str
     description: str
 
     effects: dict[str, float]
-
 
 
