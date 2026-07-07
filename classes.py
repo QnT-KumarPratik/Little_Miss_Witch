@@ -19,7 +19,6 @@ class FluidEffect(Enum):
     GRADE = "grade"
     RHO = "rho"
 
-
 # ==========================
 # Base Ingredient
 # ==========================
@@ -84,12 +83,32 @@ class Cauldron(Apparatus):
     herbs: list = field(default_factory=list)
     fluid: Fluid | None = None
     amount_ml: float = 0
-    potion = None
-    effstack = []
+    potion: Potion | None = field(default=None)
+    effstack: tuple[float, float, float, float] | None = None
 
     def add(self, herb, char):
-        
-        pass
+        if self.fluid is None:
+            print("The cauldron has no brewing fluid.")
+            return False
+
+        if not isinstance(herb, Herb):
+            print("Only herbs may be added.")
+            return False
+
+        if not char.remove(herb):
+            print(f"{char.name} doesn't have {herb.name}.")
+            return False
+
+        self.herbs.append(herb)
+
+        if self.effstack is None:
+            self.effstack = herb.vectors
+        else:
+            self.effstack = resAdd(self.effstack, herb.vectors)
+
+        print(f"Added {herb.name}.")
+        return True
+
 
     def fill(self, fluid, amount, char):
         """
@@ -98,16 +117,77 @@ class Cauldron(Apparatus):
         amount : float
             fraction of cauldron to fill from 0.0 to 1.0.
         """
-        pass
+        if not isinstance(fluid, Fluid):
+            print("Only fluids may be poured.")
+            return False
 
+        if not (0 < amount <= 1):
+            print("Amount must be between 0 and 1.")
+            return False
+
+        if self.fluid is not None:
+            print("The cauldron already contains fluid.")
+            return False
+
+        if not char.remove(fluid):
+            print(f"{char.name} has no {fluid.name}.")
+            return False
+
+        self.fluid = fluid
+        self.amount_ml = self.stats["capacity"] * amount
+
+        print(
+            f"Filled with {self.amount_ml:.0f} mL of {fluid.name}."
+        )
+        return True
+        
     def brew(self):
-        pass
+        if self.fluid is None:
+            print("Nothing to brew.")
+            return None
+
+        if not self.herbs:
+            print("There are no herbs inside.")
+            return None
+        
+        assert self.effstack is not None
+        herb_effects = dict(
+            zip(Herb.EFFECT_NAMES, self.effstack)
+            )
+
+        self.potion = Potion(
+            potname(self.herbs, self.fluid),
+            f"A potion brewed using {self.fluid.suffix.lower()} and made from"
+            + ", ".join(h.name for h in self.herbs),
+            herb_effects
+        )
+
+        print(f"Brewed {self.potion.name}.")
+
+        return self.potion
+    
 
     def get(self, char):
-        pass
+        if self.potion is None:
+            print("There is no finished potion.")
+            return None
+
+        char.add(self.potion)
+
+        potion = self.potion
+
+        self.empty()
+
+        print(f"{char.name} obtained {potion.name}.")
+
+        return potion
 
     def empty(self):
-        pass
+        self.herbs.clear()
+        self.fluid = None
+        self.amount_ml = 0
+        self.effstack = None
+        self.potion = None
 
 
 # ==========================
@@ -118,29 +198,26 @@ class Cauldron(Apparatus):
 class Character:
     name: str = "Player"
     species: str = "Human"
-    inventory: dict = field(default_factory=dict)
+    inventory: dict[object, int] = field(default_factory=dict)
 
     selected = None
+    balance = 0
 
     def add(self, item, amount=1):
-        self.inventory[item.name] = self.inventory.get(item.name, 0) + amount
+        self.inventory[item] = self.inventory.get(item, 0) + amount
 
     def remove(self, item, amount=1):
-        if item.name not in self.inventory:
-            return False
-        
-        if self.inventory[item.name] < amount:
+        if item not in self.inventory:
             return False
 
-        self.inventory[item.name] -= amount
+        self.inventory[item] -= amount
 
-        if self.inventory[item.name] <= 0:
-            del self.inventory[item.name]
-
+        if self.inventory[item] <= 0:
+            del self.inventory[item]
         return True
 
     def has(self, item):
-        return item.name in self.inventory
+        return item in self.inventory
 
     def show_inventory(self):
         print(f"\n=== {self.name}'s Inventory ===")
@@ -153,7 +230,7 @@ class Character:
         print("-" * 24)
 
         for item, qty in self.inventory.items():
-            print(f"{item:<20} {qty}")
+            print(f"{item.name:<20} {qty}") # type: ignore
 
     def select(self, item):
         if not self.has(item):
