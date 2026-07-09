@@ -1,14 +1,19 @@
 import tkinter as tk
 def mmenu():
-    mpcs = False
+    mpcs = "quit"
     def strtgm():
         nonlocal mpcs
-        mpcs = True
+        mpcs = "start"
         mwindow.destroy()
 
     def quitgm():
         nonlocal mpcs
-        mpcs = False
+        mpcs = "quit"
+        mwindow.destroy()
+
+    def tosupport():
+        nonlocal mpcs
+        mpcs = "2sprt"
         mwindow.destroy()
         
     
@@ -54,7 +59,8 @@ Little Miss Witch
         bg="black",
     ).pack(side="right", padx=10)
 
-    tk.Button(mbody, text="Start Game", command=strtgm, bg="grey", fg="lightgrey").pack(pady=45)
+    tk.Button(mbody, text="Start Game", command=strtgm, bg="grey", fg="lightgrey").pack(pady=35)
+    tk.Button(mbody, text="Links", command=tosupport, bg="grey", fg="lightgrey").pack(pady=15)
     tk.Button(mbody, text="Quit Game", command=quitgm, bg="grey", fg="lightgrey").pack(pady=15)
 
     tk.mainloop()
